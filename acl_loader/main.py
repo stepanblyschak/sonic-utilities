@@ -51,6 +51,7 @@ class AclLoader(object):
     MIRROR_SESSION = "MIRROR_SESSION"
     POLICER = "POLICER"
     SESSION_PREFIX = "everflow"
+    SWITCH_CAPABILITY_TABLE = "SWITCH_CAPABILITY"
 
     min_priority = 1
     max_priority = 10000
@@ -80,6 +81,7 @@ class AclLoader(object):
     def __init__(self):
         self.yang_acl = None
         self.requested_session = None
+        self.mirror_stage = None
         self.current_table = None
         self.tables_db_info = {}
         self.rules_db_info = {}
@@ -87,7 +89,7 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
-        self.statedb = SonicV2Connector(host="127.0.0.1")
+        self.statedb = SonicV2Connector()
         self.statedb.connect(self.statedb.STATE_DB)
 
         self.read_tables_info()
@@ -175,6 +177,14 @@ class AclLoader(object):
 
         self.requested_session = session_name
 
+    def set_mirror_stage(self, stage):
+        """
+        Set mirror stage to be used in ACL mirror rule action
+        :param session_name: stage 'ingress'/'egress'
+        :return:
+        """
+        self.mirror_stage = stage
+
     def set_max_priority(self, priority):
         """
         Set rules max priority
@@ -234,7 +244,7 @@ class AclLoader(object):
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
 
-                rule_props["MIRROR_ACTION"] = session_name
+                rule_props["MIRROR_ACTION"] = "{}:{}".format(self.mirror_stage, session_name)
             else:
                 rule_props["PACKET_ACTION"] = "FORWARD"
         elif rule.actions.config.forwarding_action == "DROP":
@@ -242,10 +252,31 @@ class AclLoader(object):
         elif rule.actions.config.forwarding_action == "REJECT":
             rule_props["PACKET_ACTION"] = "DROP"
         else:
-            raise AclLoaderException("Unknown rule action %s in table %s, rule %d" % (
+            raise AclLoaderException("Unknown rule action {} in table {}, rule {}".format(
+                rule.actions.config.forwarding_action, table_name, rule_idx))
+
+        if not self.validate_action(table_name, rule_props):
+            raise AclLoaderException("Rule action {} is not supported in table {}, rule {}".format(
                 rule.actions.config.forwarding_action, table_name, rule_idx))
 
         return rule_props
+
+    def validate_action(self, table_name, action_props):
+        if table_name not in self.tables_db_info:
+            raise AclLoaderException("Table {} does not exist".format(table_name))
+
+        stage = self.tables_db_info[table_name].get("stage", "ingress")
+        capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+        for action_key in action_props:
+            key = "ACL_ACTION|{}|{}".format(stage.upper(), action_key.upper())
+            if key not in capability:
+                return False
+
+            values = capability[key]
+            if action_props[action_key].split(":")[0].upper() not in values:
+                return False
+
+        return True
 
     def convert_l2(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -713,9 +744,10 @@ def update(ctx):
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--table_name', type=click.STRING, required=False)
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def full(ctx, filename, table_name, session_name, max_priority):
+def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
     """
     Full update of ACL rules configuration.
     If a table_name is provided, the operation will be restricted in the specified table.
@@ -728,6 +760,8 @@ def full(ctx, filename, table_name, session_name, max_priority):
     if session_name:
         acl_loader.set_session_name(session_name)
 
+    acl_loader.set_mirror_stage(mirror_stage)
+
     if max_priority:
         acl_loader.set_max_priority(max_priority)
 
@@ -738,9 +772,10 @@ def full(ctx, filename, table_name, session_name, max_priority):
 @update.command()
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def incremental(ctx, filename, session_name, max_priority):
+def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     """
     Incremental update of ACL rule configuration.
     """
@@ -748,6 +783,8 @@ def incremental(ctx, filename, session_name, max_priority):
 
     if session_name:
         acl_loader.set_session_name(session_name)
+
+    acl_loader.set_mirror_stage(mirror_stage)
 
     if max_priority:
         acl_loader.set_max_priority(max_priority)
