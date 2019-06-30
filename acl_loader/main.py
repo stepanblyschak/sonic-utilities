@@ -506,7 +506,7 @@ class AclLoader(object):
         :param table_name: Optional. ACL table name. Filter tables by specified name.
         :return:
         """
-        header = ("Name", "Type", "Binding", "Description")
+        header = ("Name", "Type", "Binding", "Description", "Stage")
 
         data = []
         for key, val in self.get_tables_db_info().iteritems():
@@ -515,21 +515,21 @@ class AclLoader(object):
 
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
                 services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"]])
+                data.append([key, val["type"], services[0], val["policy_desc"], val.get("stage", "ingress")])
 
                 if len(services) > 1:
                     for service in services[1:]:
-                        data.append(["", "", service, ""])
+                        data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
-                    data.append([key, val["type"], "", val["policy_desc"]])
+                    data.append([key, val["type"], "", val["policy_desc"], val.get("stage", "ingress")])
                 else:
                     ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"]])
+                    data.append([key, val["type"], ports[0], val["policy_desc"], val.get("stage", "ingress")])
 
                     if len(ports) > 1:
                         for port in ports[1:]:
-                            data.append(["", "", port, ""])
+                            data.append(["", "", port, "", ""])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
@@ -598,7 +598,7 @@ class AclLoader(object):
             if "PACKET_ACTION" in val:
                 action = val["PACKET_ACTION"]
             elif "MIRROR_ACTION" in val:
-                action = "MIRROR: %s" % val["MIRROR_ACTION"]
+                action = "MIRROR: {}".format(val["MIRROR_ACTION"])
             else:
                 continue
 
