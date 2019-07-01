@@ -42,6 +42,14 @@
     "PSU_INFO|PSU 2": {
         "presence": "true",
         "status": "true"
+    },
+    "SWITCH_CAPABILITY|switch": {
+        "MIRROR": "true",
+        "MIRRORV6": "true",
+        "ACL_ACTION|INGRESS|PACKET_ACTION": "DROP,FORWARD,REDIRECT",
+        "ACL_ACTION|EGRESS|PACKET_ACTION": "DROP,FORWARD",
+        "ACL_ACTION|INGRESS|MIRROR_ACTION": "INGRESS",
+        "ACL_ACTION|EGRESS|MIRROR_ACTION": "EGRESS"
     }
 }
 

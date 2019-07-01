@@ -1,16 +1,17 @@
 import sys
 import os
 import pytest
-from unittest import TestCase
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
+import mock_tables.dbconnector
+
 from acl_loader import *
 from acl_loader.main import *
 
-class TestAclLoader(TestCase):
+class TestAclLoader(object):
     def setUp(self):
         pass
 
@@ -25,3 +26,20 @@ class TestAclLoader(TestCase):
     def test_invalid(self):
         with pytest.raises(AclLoaderException):
             yang_acl = AclLoader.parse_acl_json(os.path.join(test_path, 'acl_input/acl2.json'))
+
+    def test_validate_mirror_action(self):
+        ingress_mirror_rule_props = {
+            "MIRROR_ACTION": "ingress:everflow0"
+        }
+
+        egress_mirror_rule_props = {
+            "MIRROR_ACTION": "egress:everflow0"
+        }
+
+        acl_loader = AclLoader()
+        # switch capability taken from mock_tables/state_db.json SWITCH_CAPABILITY table
+        assert acl_loader.validate_action("EVERFLOW", ingress_mirror_rule_props)
+        assert not acl_loader.validate_action("EVERFLOW", egress_mirror_rule_props)
+
+        assert not acl_loader.validate_action("EVERFLOW_EGRESS", ingress_mirror_rule_props)
+        assert acl_loader.validate_action("EVERFLOW_EGRESS", egress_mirror_rule_props)
