@@ -89,7 +89,7 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
-        self.statedb = SonicV2Connector()
+        self.statedb = SonicV2Connector(host='127.0.0.1')
         self.statedb.connect(self.statedb.STATE_DB)
 
         self.read_tables_info()
@@ -244,7 +244,8 @@ class AclLoader(object):
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
 
-                rule_props["MIRROR_ACTION"] = "{}:{}".format(self.mirror_stage, session_name)
+                mirror_action_name = "MIRROR_ACTION:{}".format(self.mirror_stage.upper())
+                rule_props[mirror_action_name] = "{}".format(session_name)
             else:
                 rule_props["PACKET_ACTION"] = "FORWARD"
         elif rule.actions.config.forwarding_action == "DROP":
@@ -268,12 +269,12 @@ class AclLoader(object):
         stage = self.tables_db_info[table_name].get("stage", "ingress")
         capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         for action_key in action_props:
-            key = "ACL_ACTION|{}|{}".format(stage.upper(), action_key.upper())
+            key = "ACL_ACTION|{}".format(stage.upper())
             if key not in capability:
                 return False
 
-            values = capability[key]
-            if action_props[action_key].split(":")[0].upper() not in values:
+            values = capability[key].split(",")
+            if action_key.upper() not in values:
                 return False
 
         return True
@@ -612,7 +613,29 @@ class AclLoader(object):
         """
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
-        ignore_list = ["PRIORITY", "PACKET_ACTION", "MIRROR_ACTION"]
+        def show_priority(val):
+            priority  = val.pop("PRIORITY")
+
+        def show_action(val):
+            action = ""
+
+            for key in dict(val):
+                key = key.upper()
+                if key == "PACKET_ACTION":
+                    action = val.pop(key)
+                elif key == "REDIRECT_ACTION":
+                    action = "REDIRECT: {}".format(val.pop(key))
+                elif key in ("MIRROR_ACTION", "MIRROR_INGRESS_ACTION"):
+                    action = "MIRROR INGRESS: {}".format(val.pop(key))
+                elif key == "MIRROR_ACTION:EGRESS":
+                    action = "MIRROR EGRESS: {}".format(val.pop(key))
+                else:
+                    continue
+
+            return action
+
+        def show_matches(val):
+            return ["%s: %s" % (k, val[k]) for k in val]
 
         raw_data = []
         for (tname, rid), val in self.get_rules_db_info().iteritems():
@@ -623,17 +646,9 @@ class AclLoader(object):
             if rule_id and rule_id != rid:
                 continue
 
-            priority = val["PRIORITY"]
-
-            action = ""
-            if "PACKET_ACTION" in val:
-                action = val["PACKET_ACTION"]
-            elif "MIRROR_ACTION" in val:
-                action = "MIRROR: {}".format(val["MIRROR_ACTION"])
-            else:
-                continue
-
-            matches = ["%s: %s" % (k, v) for k, v in val.iteritems() if k not in ignore_list]
+            priority = show_priority(val)
+            action = show_action(val)
+            matches = show_matches(val)
 
             matches.sort()
 

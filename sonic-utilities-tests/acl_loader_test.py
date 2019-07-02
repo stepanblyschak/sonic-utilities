@@ -29,11 +29,11 @@ class TestAclLoader(object):
 
     def test_validate_mirror_action(self):
         ingress_mirror_rule_props = {
-            "MIRROR_ACTION": "ingress:everflow0"
+            "MIRROR_ACTION:INGRESS": "everflow0"
         }
 
         egress_mirror_rule_props = {
-            "MIRROR_ACTION": "egress:everflow0"
+            "mirror_action:egress": "everflow0"
         }
 
         acl_loader = AclLoader()
