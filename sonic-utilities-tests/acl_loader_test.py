@@ -29,17 +29,29 @@ class TestAclLoader(object):
 
     def test_validate_mirror_action(self):
         ingress_mirror_rule_props = {
-            "MIRROR_ACTION:INGRESS": "everflow0"
+            "MIRROR_INGRESS_ACTION": "everflow0"
         }
 
         egress_mirror_rule_props = {
-            "mirror_action:egress": "everflow0"
+            "mirror_egress_action": "everflow0"
         }
 
         acl_loader = AclLoader()
         # switch capability taken from mock_tables/state_db.json SWITCH_CAPABILITY table
-        assert acl_loader.validate_action("EVERFLOW", ingress_mirror_rule_props)
-        assert not acl_loader.validate_action("EVERFLOW", egress_mirror_rule_props)
+        assert acl_loader.validate_actions("EVERFLOW", ingress_mirror_rule_props)
+        assert not acl_loader.validate_actions("EVERFLOW", egress_mirror_rule_props)
 
-        assert not acl_loader.validate_action("EVERFLOW_EGRESS", ingress_mirror_rule_props)
-        assert acl_loader.validate_action("EVERFLOW_EGRESS", egress_mirror_rule_props)
+        assert not acl_loader.validate_actions("EVERFLOW_EGRESS", ingress_mirror_rule_props)
+        assert acl_loader.validate_actions("EVERFLOW_EGRESS", egress_mirror_rule_props)
+
+        forward_packet_action = {
+            "PACKET_ACTION": "FORWARD"
+        }
+
+        drop_packet_action = {
+            "PACKET_ACTION": "DROP"
+        }
+
+        # switch capability taken from mock_tables/state_db.json SWITCH_CAPABILITY table
+        assert acl_loader.validate_actions("DATAACL", forward_packet_action)
+        assert not acl_loader.validate_actions("DATAACL", drop_packet_action)

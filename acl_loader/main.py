@@ -38,6 +38,31 @@ def deep_update(dst, src):
     return dst
 
 
+class AclAction:
+    """ namespace for ACL action keys """
+
+    PACKET         = "PACKET_ACTION"
+    REDIRECT       = "REDIRECT_ACTION"
+    MIRROR         = "MIRROR_ACTION"
+    MIRROR_INGRESS = "MIRROR_INGRESS_ACTION"
+    MIRROR_EGRESS  = "MIRROR_EGRESS_ACTION"
+
+
+class PacketAction:
+    """ namespace for ACL packet actions """
+
+    DROP    = "DROP"
+    FORWARD = "FORWARD"
+    ACCEPT  = "ACCEPT"
+
+
+class Stage:
+    """ namespace for ACL stage """
+
+    INGRESS = "INGRESS"
+    EGRESS  = "EGRESS"
+
+
 class AclLoaderException(Exception):
     pass
 
@@ -52,6 +77,8 @@ class AclLoader(object):
     POLICER = "POLICER"
     SESSION_PREFIX = "everflow"
     SWITCH_CAPABILITY_TABLE = "SWITCH_CAPABILITY"
+    ACL_ACTIONS_CAPABILITY_FIELD = "ACL_ACTIONS"
+    ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
 
     min_priority = 1
     max_priority = 10000
@@ -183,7 +210,7 @@ class AclLoader(object):
         :param session_name: stage 'ingress'/'egress'
         :return:
         """
-        self.mirror_stage = stage
+        self.mirror_stage = stage.upper()
 
     def set_max_priority(self, priority):
         """
@@ -238,46 +265,70 @@ class AclLoader(object):
 
         if rule.actions.config.forwarding_action == "ACCEPT":
             if self.is_table_control_plane(table_name):
-                rule_props["PACKET_ACTION"] = "ACCEPT"
+                rule_props[AclAction.PACKET] = PacketAction.ACCEPT
             elif self.is_table_mirror(table_name):
                 session_name = self.get_session_name()
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
 
-                mirror_action_name = "MIRROR_ACTION:{}".format(self.mirror_stage.upper())
-                rule_props[mirror_action_name] = "{}".format(session_name)
+                if self.mirror_stage == Stage.INGRESS:
+                    mirror_action = AclAction.MIRROR_INGRESS_ACTION
+                elif self.mirror_stage == Stage.EGRES:
+                    mirror_action = AclAction.MIRROR_EGRESS_ACTION
+                else:
+                    raise AclLoaderException("Invalid mirror stage passed {}".format(self.mirror_stage))
+
+                rule_props[mirror_action] = session_name
             else:
-                rule_props["PACKET_ACTION"] = "FORWARD"
+                rule_props[AclAction.PACKET] = PacketAction.FORWARD
         elif rule.actions.config.forwarding_action == "DROP":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         elif rule.actions.config.forwarding_action == "REJECT":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         else:
             raise AclLoaderException("Unknown rule action {} in table {}, rule {}".format(
                 rule.actions.config.forwarding_action, table_name, rule_idx))
 
-        if not self.validate_action(table_name, rule_props):
+        if not self.validate_actions(table_name, rule_props):
             raise AclLoaderException("Rule action {} is not supported in table {}, rule {}".format(
                 rule.actions.config.forwarding_action, table_name, rule_idx))
 
         return rule_props
 
-    def validate_action(self, table_name, action_props):
+    def validate_actions(self, table_name, action_props):
+        if self.is_table_control_plane(table_name):
+            return True
+
+        action_count = len(action_props)
+
         if table_name not in self.tables_db_info:
             raise AclLoaderException("Table {} does not exist".format(table_name))
 
-        stage = self.tables_db_info[table_name].get("stage", "ingress")
+        stage = self.tables_db_info[table_name].get("stage", Stage.INGRESS)
         capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
-        for action_key in action_props:
-            key = "ACL_ACTION|{}".format(stage.upper())
+        for action_key in dict(action_props):
+            key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
             if key not in capability:
-                return False
+                del action_props[action_key]
+                continue
 
             values = capability[key].split(",")
             if action_key.upper() not in values:
-                return False
+                del action_props[action_key]
+                continue
 
-        return True
+            if action_key == AclAction.PACKET:
+                # Check if action_value is supported
+                action_value = action_props[action_key]
+                key = "{}|{}".format(self.ACL_ACTION_CAPABILITY_FIELD, action_key.upper())
+                if key not in capability:
+                    del action_props[action_key]
+                    continue
+
+                if action_value not in capability[key]:
+                    del action_props[action_key]
+
+        return action_count == len(action_props)
 
     def convert_l2(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -545,19 +596,21 @@ class AclLoader(object):
             if table_name and key != table_name:
                 continue
 
+            stage = val.get("stage", Stage.INGRESS).lower()
+
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
                 services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"], val.get("stage", "ingress")])
+                data.append([key, val["type"], services[0], val["policy_desc"], stage])
 
                 if len(services) > 1:
                     for service in services[1:]:
                         data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
-                    data.append([key, val["type"], "", val["policy_desc"], val.get("stage", "ingress")])
+                    data.append([key, val["type"], "", val["policy_desc"], stage])
                 else:
                     ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"], val.get("stage", "ingress")])
+                    data.append([key, val["type"], ports[0], val["policy_desc"], stage])
 
                     if len(ports) > 1:
                         for port in ports[1:]:
@@ -615,19 +668,20 @@ class AclLoader(object):
 
         def show_priority(val):
             priority  = val.pop("PRIORITY")
+            return priority
 
         def show_action(val):
             action = ""
 
             for key in dict(val):
                 key = key.upper()
-                if key == "PACKET_ACTION":
+                if key == AclAction.PACKET:
                     action = val.pop(key)
-                elif key == "REDIRECT_ACTION":
+                elif key == AclAction.REDIRECT:
                     action = "REDIRECT: {}".format(val.pop(key))
-                elif key in ("MIRROR_ACTION", "MIRROR_INGRESS_ACTION"):
+                elif key in (AclAction.MIRROR, AclAction.MIRROR_INGRESS):
                     action = "MIRROR INGRESS: {}".format(val.pop(key))
-                elif key == "MIRROR_ACTION:EGRESS":
+                elif key == AclAction.MIRROR_EGRESS:
                     action = "MIRROR EGRESS: {}".format(val.pop(key))
                 else:
                     continue
@@ -635,7 +689,10 @@ class AclLoader(object):
             return action
 
         def show_matches(val):
-            return ["%s: %s" % (k, val[k]) for k in val]
+            matches = list(sorted(["%s: %s" % (k, val[k]) for k in val]))
+            if len(matches) == 0:
+                matches.append("N/A")
+            return matches
 
         raw_data = []
         for (tname, rid), val in self.get_rules_db_info().iteritems():
@@ -649,11 +706,6 @@ class AclLoader(object):
             priority = show_priority(val)
             action = show_action(val)
             matches = show_matches(val)
-
-            matches.sort()
-
-            if len(matches) == 0:
-                matches.append("N/A")
 
             rule_data = [[tname, rid, priority, action, matches[0]]]
             if len(matches) > 1:
