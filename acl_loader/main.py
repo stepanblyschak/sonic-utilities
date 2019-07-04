@@ -116,7 +116,7 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
-        self.statedb = SonicV2Connector(host='127.0.0.1')
+        self.statedb = SonicV2Connector(host="127.0.0.1")
         self.statedb.connect(self.statedb.STATE_DB)
 
         self.read_tables_info()
@@ -272,9 +272,9 @@ class AclLoader(object):
                     raise AclLoaderException("Mirroring session does not exist")
 
                 if self.mirror_stage == Stage.INGRESS:
-                    mirror_action = AclAction.MIRROR_INGRESS_ACTION
-                elif self.mirror_stage == Stage.EGRES:
-                    mirror_action = AclAction.MIRROR_EGRESS_ACTION
+                    mirror_action = AclAction.MIRROR_INGRESS
+                elif self.mirror_stage == Stage.EGRESS:
+                    mirror_action = AclAction.MIRROR_EGRESS
                 else:
                     raise AclLoaderException("Invalid mirror stage passed {}".format(self.mirror_stage))
 
