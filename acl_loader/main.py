@@ -327,6 +327,7 @@ class AclLoader(object):
 
                 if action_value not in capability[key]:
                     del action_props[action_key]
+                    continue
 
         return action_count == len(action_props)
 
@@ -666,11 +667,11 @@ class AclLoader(object):
         """
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
-        def show_priority(val):
+        def pop_priority(val):
             priority  = val.pop("PRIORITY")
             return priority
 
-        def show_action(val):
+        def pop_action(val):
             action = ""
 
             for key in dict(val):
@@ -688,7 +689,7 @@ class AclLoader(object):
 
             return action
 
-        def show_matches(val):
+        def pop_matches(val):
             matches = list(sorted(["%s: %s" % (k, val[k]) for k in val]))
             if len(matches) == 0:
                 matches.append("N/A")
@@ -703,9 +704,9 @@ class AclLoader(object):
             if rule_id and rule_id != rid:
                 continue
 
-            priority = show_priority(val)
-            action = show_action(val)
-            matches = show_matches(val)
+            priority = pop_priority(val)
+            action = pop_action(val)
+            matches = pop_matches(val)
 
             rule_data = [[tname, rid, priority, action, matches[0]]]
             if len(matches) > 1:
