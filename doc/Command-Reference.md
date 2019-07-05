@@ -934,20 +934,20 @@ Output from the command displays the table name, type of the table, the list of 
 - Example:
   ```
   admin@sonic:~$ show acl table
-	Name      Type       Binding          Description
-	--------  ---------  ---------------  -------------
-	EVERFLOW  MIRROR     Ethernet16       EVERFLOW
-						 Ethernet96
-						 Ethernet108
-						 Ethernet112
-						 PortChannel0001
-						 PortChannel0002
-	SNMP_ACL  CTRLPLANE  SNMP             SNMP_ACL
-	DT_ACL_T1 L3         Ethernet0        DATA_ACL_TABLE_1
-						 Ethernet4
-						 Ethernet112
-						 Ethernet116
-	SSH_ONLY  CTRLPLANE  SSH              SSH_ONLY
+	Name      Type       Binding          Description      Stage
+	--------  ---------  ---------------  ---------------- -------
+	EVERFLOW  MIRROR     Ethernet16       EVERFLOW         ingress
+                         Ethernet96
+                         Ethernet108
+                         Ethernet112
+                         PortChannel0001
+                         PortChannel0002
+	SNMP_ACL  CTRLPLANE  SNMP             SNMP_ACL         ingress
+	DT_ACL_T1 L3         Ethernet0        DATA_ACL_TABLE_1 egress
+                         Ethernet4
+                         Ethernet112
+                         Ethernet116
+	SSH_ONLY  CTRLPLANE  SSH              SSH_ONLY         ingress
 
   ```
 
@@ -1006,6 +1006,8 @@ This command updates only the ACL rules and it does not disturb the ACL tables; 
 
 When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
 
+When "--mirror_stage" optional argument is specified, command sets the mirror action to ingress/egress based on this parameter. By default command sets ingress mirror action in case argument is not specified.
+
 When the optional argument "max_priority"  is specified, each rule’s priority is calculated by subtracting its “sequence_id” value from the “max_priority”. If this value is not passed, the default “max_priority” 10000 is used.
 
 - Usage:
@@ -1013,7 +1015,8 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 	Some of the possible options are
 	1) --table_name <table_name>, Example: config acl update full " --table_name DT_ACL_T1  /etc/sonic/acl_table_1.json "
 	2) --session_name <session_name>, Example: config acl update full " --session_name mirror_ses1 /etc/sonic/acl_table_1.json "
-	3) --max_priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
+	3) --mirror_stage ingress|egress, Example: config acl update full " --mirror_stage egress /etc/sonic/acl_table_1.json "
+	4) --max_priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
 
 	NOTE: All these optional parameters should be inside the double quotes. If none of the options are provided, double quotes is not required for specifying filename alone.
 	Any number of optional parameters can be configured in the same command.
@@ -1047,13 +1050,16 @@ Note that "incremental" is working like "full".
 
 When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
 
+When "--mirror_stage" optional argument is specified, command sets the mirror action to ingress/egress based on this parameter. By default command sets ingress mirror action in case argument is not specified.
+
 When the optional argument "max_priority"  is specified, each rule’s priority is calculated by subtracting its “sequence_id” value from the “max_priority”. If this value is not passed, the default “max_priority” 10000 is used.
 
   - Usage:
     config acl update incremental FILE_NAME
 	Some of the possible options are
 	1) --session_name <session_name>, Example: config acl update full " --session_name mirror_ses1 /etc/sonic/acl_table_1.json "
-	2) --max-priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
+	2) --mirror_stage ingress|egress, Example: config acl update full " --mirror_stage egress /etc/sonic/acl_table_1.json "
+	3) --max-priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
 
 	NOTE: All these optional parameters should be inside the double quotes. If none of the options are provided, double quotes is not required for specifying filename alone.
 	Any number of optional parameters can be configured in the same command.
