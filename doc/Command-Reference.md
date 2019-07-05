@@ -958,7 +958,19 @@ Output from the command gives the following information about the rules
 1) Table name - ACL table name to which the rule belongs to.
 2) Rule name - ACL rule name
 3) Priority - Priority for this rule.
-4) Action - Action to be performed if the packet matches with this ACL rule. It could be either Drop or Permit. Users can choose to have a default permit rule or default deny rule. In case of default "deny all" rule, add the permitted rules on top of the deny rule. In case of the default "permit all" rule, users can add the deny rules on top of it. If users have not confgured any rule, SONiC allows all traffic (which is "permit all").
+4) Action - Action to be performed if the packet matches with this ACL rule.
+
+It can be:
+- "DROP"/"FORWARD"("ACCEPT" for control plane ACL)
+- "REDIRECT: redirect-object" for redirect rule, where "redirect-object" is either:
+    -  physical interface name, e.g. "Ethernet10"
+    -  port channel name, e.g. "PortChannel0002"
+    -  next-hop IP address, e.g. "10.0.0.1"
+    -  next-hop group set of IP addresses with comma seperator, e.g. "10.0.0.1,10.0.0.3"
+- "MIRROR INGRESS|EGRESS: session-name" for mirror rules, where "session-name" refers to mirror session
+
+Users can choose to have a default permit rule or default deny rule. In case of default "deny all" rule, add the permitted rules on top of the deny rule. In case of the default "permit all" rule, users can add the deny rules on top of it. If users have not confgured any rule, SONiC allows all traffic (which is "permit all").
+
 5) Match  - The fields from the packet header that need to be matched against the same present in the incoming traffic.
 
 - Usage:
@@ -968,15 +980,19 @@ Output from the command gives the following information about the rules
 - Example:
   ```
   admin@sonic:~$ show acl rule
-	Table     Rule          Priority    Action    Match
-	--------  ------------  ----------  --------  ------------------
-	SNMP_ACL  RULE_1        9999        ACCEPT    IP_PROTOCOL: 17
-												  SRC_IP: 1.1.1.1/32
-	SSH_ONLY  RULE_1        9999        ACCEPT    IP_PROTOCOL: 6
-												  SRC_IP: 1.1.1.1/32
-	SNMP_ACL  DEFAULT_RULE  1           DROP      ETHER_TYPE: 2048
-	SSH_ONLY  DEFAULT_RULE  1           DROP      ETHER_TYPE: 2048
-
+    Table     Rule          Priority    Action                     Match
+    --------  ------------  ----------  -------------------------  ----------------------------
+    SNMP_ACL  RULE_1        9999        ACCEPT                     IP_PROTOCOL: 17
+                                                                   SRC_IP: 1.1.1.1/32
+    SSH_ONLY  RULE_2        9998        ACCEPT                     IP_PROTOCOL: 6
+                                                                   SRC_IP: 1.1.1.1/32
+    EVERFLOW  RULE_3        9997        MIRROR INGRESS: everflow0  SRC_IP: 20.0.0.2/32
+    EVERFLOW  RULE_4        9996        MIRROR EGRESS : everflow1  L4_SRC_PORT: 4621
+    DATAACL   RULE_5        9995        REDIRECT: Ethernet8        IP_PROTOCOL: 126
+    DATAACL   RULE_6        9994        FORWARD                    L4_SRC_PORT: 179
+    DATAACL   RULE_7        9993        FORWARD                    L4_DST_PORT: 179
+    SNMP_ACL  DEFAULT_RULE  1           DROP                       ETHER_TYPE: 2048
+    SSH_ONLY  DEFAULT_RULE  1           DROP                       ETHER_TYPE: 2048
   ```
 
 
