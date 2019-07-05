@@ -6,8 +6,6 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
-
 from acl_loader import *
 from acl_loader.main import *
 
