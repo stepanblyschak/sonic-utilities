@@ -313,7 +313,7 @@ function reboot_pre_check()
         error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
-    
+
     # Make sure ASIC configuration has not changed between images
     ASIC_CONFIG_CHECK_SCRIPT="/usr/bin/asic_config_check"
     ASIC_CONFIG_CHECK_SUCCESS=0
@@ -473,6 +473,7 @@ fi
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."
 /usr/bin/dump_nat_entries.py
+docker exec -it nat bash -c "sync && sync" || true
 docker kill nat > /dev/null || true
 systemctl stop nat
 debug "Stopped nat ..."
