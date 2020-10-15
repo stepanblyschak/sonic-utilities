@@ -10,6 +10,8 @@ try:
     import subprocess
     import click
     import xml.etree.ElementTree as ET
+    import show.main as show
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -137,3 +139,7 @@ def issu_status():
 
     click.echo('ISSU is enabled' if res else 'ISSU is disabled')
 
+
+version_info = device_info.get_sonic_version_info()
+if (version_info and version_info.get('asic_type') == 'mellanox'):
+    show.platform.add_command(mlnx)

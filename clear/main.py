@@ -4,6 +4,9 @@ import click
 import os
 import subprocess
 
+from clear import plugins
+from utilities_common import util_base
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -123,7 +126,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'Clear' command"""
-    pass
+
+    helper = util_base.UtilHelper()
+    helper.load_plugins(plugins)
 
 
 #

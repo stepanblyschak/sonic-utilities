@@ -1,5 +1,4 @@
 #! /usr/bin/python -u
-
 import json
 import netaddr
 import os
@@ -11,11 +10,12 @@ from natsort import natsorted
 import netifaces
 from pkg_resources import parse_version
 
+import plugins
 import feature
 import interfaces
 import kube
-import mlnx
 import utilities_common.cli as clicommon
+import utilities_common.util_base as util_base
 import vlan
 import system_health
 
@@ -120,6 +120,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.pass_context
 def cli(ctx):
     """SONiC command line - 'show' command"""
+
+    helper = util_base.UtilHelper()
+    helper.load_plugins(plugins)
 
     ctx.obj = Db()
 
@@ -999,9 +1002,6 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-version_info = device_info.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    platform.add_command(mlnx.mlnx)
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()

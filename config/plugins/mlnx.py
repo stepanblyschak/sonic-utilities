@@ -10,7 +10,9 @@ try:
     import time
 
     import click
+    import config.main as config
     from sonic_py_common import logger
+    from sonic_py_common import device_info
     import utilities_common.cli as clicommon
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -228,6 +230,10 @@ def sdk_sniffer_disable():
 # def all():
 #     pass
 
+
+version_info = device_info.get_sonic_version_info()
+if (version_info and version_info.get('asic_type') == 'mellanox'):
+    config.platform.add_command(mlnx)
 
 if __name__ == '__main__':
     sniffer()

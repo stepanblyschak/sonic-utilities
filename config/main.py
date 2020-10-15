@@ -17,6 +17,9 @@ from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+
+from config import plugins
+from utilities_common import util_base
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -27,7 +30,6 @@ import aaa
 import console
 import feature
 import kube
-import mlnx
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
@@ -866,8 +868,8 @@ def config(ctx):
     except (KeyError, TypeError):
         raise click.Abort()
 
-    if asic_type == 'mellanox':
-        platform.add_command(mlnx.mlnx)
+    helper = util_base.UtilHelper()
+    helper.load_plugins(plugins)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
