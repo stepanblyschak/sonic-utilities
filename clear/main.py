@@ -5,6 +5,10 @@ import sys
 
 import click
 
+from utilities_common import util_base
+
+from . import plugins
+
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -119,8 +123,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'Clear' command"""
-    pass
 
+    pass
 
 #
 # 'ip' group ###
@@ -421,6 +425,13 @@ def translations():
 
     cmd = "natclear -t"
     run_command(cmd)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    plugin.register(cli)
+
 
 if __name__ == '__main__':
     cli()

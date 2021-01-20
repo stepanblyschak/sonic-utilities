@@ -1,6 +1,8 @@
 try:
     import imp
     import os
+    import pkgutil
+    import importlib
 
     from sonic_py_common import device_info
 except ImportError as e:
@@ -18,6 +20,17 @@ EEPROM_CLASS_NAME = 'board'
 class UtilHelper(object):
     def __init__(self):
         pass
+
+    def load_plugins(self, plugins_namespace):
+        """ Discover and load CLI plugins. Yield a plugin module. """
+
+        def iter_namespace(ns_pkg):
+            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+
+        for _, module_name, ispkg in iter_namespace(plugins_namespace):
+            if ispkg:
+                continue
+            yield importlib.import_module(module_name)
 
     # Loads platform specific psuutil module from source
     def load_platform_util(self, module_name, class_name):

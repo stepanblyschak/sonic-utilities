@@ -19,6 +19,7 @@ from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common import util_base
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -30,11 +31,11 @@ from . import console
 from . import feature
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import vlan
 from . import vxlan
+from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 
 # mock masic APIs for unit test
@@ -923,9 +924,6 @@ def config(ctx):
         asic_type = version_info['asic_type']
     except (KeyError, TypeError):
         raise click.Abort()
-
-    if asic_type == 'mellanox':
-        platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
@@ -4323,6 +4321,13 @@ def delete(ctx):
 
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    plugin.register(config)
+
 
 if __name__ == '__main__':
     config()
