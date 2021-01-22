@@ -426,6 +426,7 @@ This command displays relevant information as the SONiC and Linux kernel version
   ```
   admin@sonic:~$ show version
   SONiC Software Version: SONiC.HEAD.32-21ea29a
+  SONiC Compatility Version: 1.0.0
   Distribution: Debian 9.8
   Kernel: 4.9.0-8-amd64
   Build commit: 21ea29a

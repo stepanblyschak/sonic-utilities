@@ -1082,6 +1082,7 @@ def version(verbose):
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    click.echo("SONiC Compatility Version: {}".format(version_info['base_os_compatibility_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
