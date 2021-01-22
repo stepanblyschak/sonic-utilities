@@ -294,6 +294,8 @@ def migrate_sonic_packages(image_version):
     SONIC_PACKAGE_MANAGER = "sonic-package-manager"
     PACKAGE_MANAGER_DIR = "/var/lib/sonic-package-manager/"
     DOCKER_CTL_SCRIPT = "/usr/lib/docker/docker.sh"
+    DOCKERD_SOCK = "docker.sock"
+    VAR_RUN_PATH = "/var/run/"
 
     tmp_dir = "tmp"
     packages_file = "packages.json"
@@ -318,8 +320,14 @@ def migrate_sonic_packages(image_version):
         mount_sysfs_chroot(new_image_mount)
         run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
         run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
+        run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+        run_command_or_raise(["mount", "--bind",
+                              os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
+                              os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
         run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
-                              "{}".format(os.path.join("/", tmp_dir, packages_file)), "-y"])
+                              os.path.join("/", tmp_dir, packages_file),
+                              "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
+                              "-y"])
     finally:
         run_command("chroot {} {} stop".format(new_image_mount, DOCKER_CTL_SCRIPT))
         umount(new_image_mount, recursive=True, read_only=False, remove_dir=False)
