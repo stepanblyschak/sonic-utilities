@@ -7,6 +7,8 @@ from unittest.mock import Mock, MagicMock
 import pytest
 from docker_image.reference import Reference
 
+from config.config_mgmt import ConfigMgmt
+
 from sonic_package_manager.database import PackageDatabase, PackageEntry
 from sonic_package_manager.manager import DockerApi, PackageManager
 from sonic_package_manager.manifest import Manifest
@@ -62,7 +64,17 @@ def mock_service_creator():
 
 @pytest.fixture
 def mock_sonic_db():
-    yield Mock()
+    yield MagicMock()
+
+
+@pytest.fixture
+def mock_config_mgmt():
+    yield MagicMock()
+
+
+@pytest.fixture
+def mock_cli_gen():
+    yield MagicMock()
 
 
 @pytest.fixture
@@ -252,7 +264,7 @@ def fake_db(fake_metadata_resolver):
         description='SONiC Package Manager Test Package',
         default_reference='1.6.0',
         installed=False,
-        built_in=False
+        built_in=False,
     )
     add_package(
         content,
@@ -402,8 +414,8 @@ def sonic_fs(fs):
 
 @pytest.fixture(autouse=True)
 def patch_pkgutil():
-    with mock.patch('pkgutil.get_loader'):
-        yield
+    with mock.patch('pkgutil.get_loader') as loader:
+        yield loader
 
 
 @pytest.fixture
