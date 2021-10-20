@@ -69,10 +69,11 @@ class AclLoaderException(Exception):
 
 class AclLoader(object):
 
+    CTRL_PLANE_ACL_TABLE = "CTRL_PLANE_ACL_TABLE"
+    CTRL_PLANE_ACL_RULE = "CTRL_PLANE_ACL_RULE"
     ACL_TABLE = "ACL_TABLE"
     ACL_RULE = "ACL_RULE"
     ACL_TABLE_TYPE_MIRROR = "MIRROR"
-    ACL_TABLE_TYPE_CTRLPLANE = "CTRLPLANE"
     CFG_MIRROR_SESSION_TABLE = "MIRROR_SESSION"
     STATE_MIRROR_SESSION_TABLE = "MIRROR_SESSION_TABLE"
     POLICER = "POLICER"
@@ -161,9 +162,13 @@ class AclLoader(object):
         :return:
         """
         self.tables_db_info = self.configdb.get_table(self.ACL_TABLE)
+        self.ctrl_tables_db_info = self.configdb.get_table(self.CTRL_PLANE_ACL_TABLE)
 
     def get_tables_db_info(self):
         return self.tables_db_info
+
+    def get_ctrl_tables_db_info(self):
+        return self.ctrl_tables_db_info
 
     def read_rules_info(self):
         """
@@ -319,14 +324,6 @@ class AclLoader(object):
         :return: True if table type is IPv6 else False
         """
         return self.tables_db_info[tname]["type"].upper() in ("L3V6", "MIRRORV6")
-
-    def is_table_control_plane(self, tname):
-        """
-        Check if ACL table type is ACL_TABLE_TYPE_CTRLPLANE
-        :param tname: ACL table name
-        :return: True if table type is ACL_TABLE_TYPE_CTRLPLANE else False
-        """
-        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE
 
     @staticmethod
     def parse_acl_json(filename):
@@ -709,17 +706,21 @@ class AclLoader(object):
 
         for key in new_rules:
             table_name = key[0]
-            if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
+            if table_name in self.tables_db_info:
+                new_dataplane_rules.add(key)
+            elif table_name in self.ctrl_tables_db_info:
                 new_controlplane_rules.add(key)
             else:
-                new_dataplane_rules.add(key)
+                raise AclLoaderException("Unknown table %s" % table_name)
 
         for key in current_rules:
             table_name = key[0]
-            if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
+            if table_name in self.tables_db_info:
+                current_dataplane_rules.add(key)
+            elif table_name in self.ctrl_tables_db_info:
                 current_controlplane_rules.add(key)
             else:
-                current_dataplane_rules.add(key)
+                raise AclLoaderException("Unknown table %s" % table_name)
 
         # Remove all existing dataplane rules
         for key in current_dataplane_rules:
@@ -741,26 +742,26 @@ class AclLoader(object):
         existing_controlplane_rules = new_rules.intersection(current_controlplane_rules)
 
         for key in added_controlplane_rules:
-            self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            self.configdb.mod_entry(self.CTRL_PLANE_ACL_RULE, key, self.rules_info[key])
             # Program for per-asic namespace corresponding to front asic also if present.
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
             for namespace_configdb in self.per_npu_configdb.values():
-                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+                namespace_configdb.mod_entry(self.CTRL_PLANE_ACL_RULE, key, self.rules_info[key])
 
         for key in removed_controlplane_rules:
-            self.configdb.mod_entry(self.ACL_RULE, key, None)
+            self.configdb.mod_entry(self.CTRL_PLANE_ACL_RULE, key, None)
             # Program for per-asic namespace corresponding to front asic also if present.
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
             for namespace_configdb in self.per_npu_configdb.values():
-                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+                namespace_configdb.mod_entry(self.CTRL_PLANE_ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
-                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+                self.configdb.set_entry(self.CTRL_PLANE_ACL_RULE, key, self.rules_info[key])
                 # Program for per-asic namespace corresponding to front asic also if present.
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere
                 for namespace_configdb in self.per_npu_configdb.values():
-                    namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+                    namespace_configdb.set_entry(self.CTRL_PLANE_ACL_RULE, key, self.rules_info[key])
 
     def delete(self, table=None, rule=None):
         """
@@ -791,23 +792,28 @@ class AclLoader(object):
 
             stage = val.get("stage", Stage.INGRESS).lower()
 
-            if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
-                services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"], stage])
-
-                if len(services) > 1:
-                    for service in services[1:]:
-                        data.append(["", "", service, "", ""])
+            if not val["ports"]:
+                data.append([key, val["type"], "", val["policy_desc"], stage])
             else:
-                if not val["ports"]:
-                    data.append([key, val["type"], "", val["policy_desc"], stage])
-                else:
-                    ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"], stage])
+                ports = natsorted(val["ports"])
+                data.append([key, val["type"], ports[0], val["policy_desc"], stage])
 
-                    if len(ports) > 1:
-                        for port in ports[1:]:
-                            data.append(["", "", port, "", ""])
+                if len(ports) > 1:
+                    for port in ports[1:]:
+                        data.append(["", "", port, "", ""])
+
+        for key, val in self.get_ctrl_tables_db_info().items():
+            if table_name and key != table_name:
+                continue
+
+            stage = val.get("stage", Stage.INGRESS).lower()
+
+            services = natsorted(val["services"])
+            data.append([key, val["type"], services[0], val["policy_desc"], stage])
+
+            if len(services) > 1:
+                for service in services[1:]:
+                    data.append(["", "", service, "", ""])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

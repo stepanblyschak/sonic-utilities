@@ -40,7 +40,7 @@
       "type": "MIRRORV6"
     }
   }, 
-  "ACL_TABLE|SNMP_ACL": {
+  "CTRL_PLANE_ACL_TABLE|SNMP_ACL": {
     "expireat": 1602451533.235009, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -51,7 +51,7 @@
       "type": "CTRLPLANE"
     }
   }, 
-  "ACL_TABLE|SSH_ONLY": {
+  "CTRL_PLANE_ACL_TABLE|SSH_ONLY": {
     "expireat": 1602451533.232844, 
     "ttl": -0.001, 
     "type": "hash", 
