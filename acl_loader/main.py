@@ -409,12 +409,12 @@ class AclLoader(object):
             aclcapability = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.ACL_STAGE_CAPABILITY_TABLE, stage.upper()))
             switchcapability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         for action_key in dict(action_props):
-            acl_actions_key = self.ACL_ACTIONS_CAPABILITY_FIELD
-            if acl_actions_key not in aclcapability:
+            action_list_key = self.ACL_ACTIONS_CAPABILITY_FIELD
+            if action_list_key not in aclcapability:
                 del action_props[action_key]
                 continue
 
-            values = aclcapability[acl_actions_key].split(",")
+            values = aclcapability[action_list_key].split(",")
             if action_key.upper() not in values:
                 del action_props[action_key]
                 continue

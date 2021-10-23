@@ -6128,7 +6128,7 @@
     "ttl": -0.001,
     "type": "hash",
     "value": {
-      "acl_actions": "PACKET_ACTION,MIRROR_INGRESS_ACTION"
+      "action_list": "PACKET_ACTION,MIRROR_INGRESS_ACTION"
     }
   },
   "ACL_STAGE_CAPABILITY_TABLE|INGRESS": {
@@ -6136,7 +6136,7 @@
     "ttl": -0.001,
     "type": "hash",
     "value": {
-      "acl_actions": "PACKET_ACTION"
+      "action_list": "PACKET_ACTION"
     }
   },
   "TRANSCEIVER_DOM_SENSOR|Ethernet0": {
