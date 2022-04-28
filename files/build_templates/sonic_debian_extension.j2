@@ -489,6 +489,18 @@ sudo LANG=C chroot $FILESYSTEM_ROOT umount -lf /sys
 # Copy swss and syncd service script
 sudo LANG=C cp $SCRIPTS_DIR/swss.sh $FILESYSTEM_ROOT/usr/local/bin/swss.sh
 sudo LANG=C cp $SCRIPTS_DIR/syncd.sh $FILESYSTEM_ROOT/usr/local/bin/syncd.sh
+sudo LANG=C cp $SCRIPTS_DIR/bgp.sh $FILESYSTEM_ROOT/usr/local/bin/bgp.sh
+sudo LANG=C cp $SCRIPTS_DIR/teamd.sh $FILESYSTEM_ROOT/usr/local/bin/teamd.sh
+sudo LANG=C cp $SCRIPTS_DIR/lldp.sh $FILESYSTEM_ROOT/usr/local/bin/lldp.sh
+sudo LANG=C cp $SCRIPTS_DIR/dhcp_relay.sh $FILESYSTEM_ROOT/usr/local/bin/dhcp_relay.sh
+sudo LANG=C cp $SCRIPTS_DIR/nat.sh $FILESYSTEM_ROOT/usr/local/bin/nat.sh
+sudo LANG=C cp $SCRIPTS_DIR/restapi.sh $FILESYSTEM_ROOT/usr/local/bin/restapi.sh
+sudo LANG=C cp $SCRIPTS_DIR/radv.sh $FILESYSTEM_ROOT/usr/local/bin/radv.sh
+sudo LANG=C cp $SCRIPTS_DIR/sflow.sh $FILESYSTEM_ROOT/usr/local/bin/sflow.sh
+sudo LANG=C cp $SCRIPTS_DIR/database.sh $FILESYSTEM_ROOT/usr/local/bin/database.sh
+sudo LANG=C cp $SCRIPTS_DIR/snmp.sh $FILESYSTEM_ROOT/usr/local/bin/snmp.sh
+sudo LANG=C cp $SCRIPTS_DIR/telemetry.sh $FILESYSTEM_ROOT/usr/local/bin/telemetry.sh
+sudo LANG=C cp $SCRIPTS_DIR/mgmt-framework.sh $FILESYSTEM_ROOT/usr/local/bin/mgmt-framework.sh
 
 # Copy sonic-netns-exec script
 sudo LANG=C cp $SCRIPTS_DIR/sonic-netns-exec $FILESYSTEM_ROOT/usr/bin/sonic-netns-exec
