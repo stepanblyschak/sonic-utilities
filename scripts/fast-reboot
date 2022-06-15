@@ -119,6 +119,11 @@ function clear_warm_boot()
     result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
     debug "Cancel warm-reboot: ${result}"
 
+    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+        debug "Calling hw-management.sh chipup"
+        hw-management.sh chipup
+    fi
+
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
@@ -317,7 +322,7 @@ function reboot_pre_check()
         debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
         exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
     fi
-    
+
     # Make sure ASIC configuration has not changed between images
     ASIC_CONFIG_CHECK_SCRIPT="/usr/bin/asic_config_check"
     ASIC_CONFIG_CHECK_SUCCESS=0
@@ -532,6 +537,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
 
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
         check_issu_bank_file
+        debug "Calling hw-management.sh chipdown"
+        hw-management.sh chipdown
     fi
 
     request_pre_shutdown
