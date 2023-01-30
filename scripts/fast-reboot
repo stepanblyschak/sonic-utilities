@@ -628,14 +628,9 @@ fi
 set +e
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Clear all routes except of default routes for faster reconciliation time.
-    sonic-db-cli APPL_DB eval "
-        for _, k in ipairs(redis.call('keys', '*')) do
-            if string.match(k, 'ROUTE_TABLE:') and not string.match(k, 'ROUTE_TABLE:0.0.0.0/0') and not string.match(k, 'ROUTE_TABLE:::/0') then \
-                redis.call('del', k)
-            end
-        end
-    " 0 > /dev/null
+    # Clear all routes except of default and connected routes for faster reconciliation time.
+    debug "Clearing routes..."
+    python /usr/local/bin/fast-reboot-filter-routes.py
 fi
 
 # disable trap-handlers which were set before
