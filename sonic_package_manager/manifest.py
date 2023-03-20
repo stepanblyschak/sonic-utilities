@@ -212,6 +212,7 @@ class ManifestSchema:
             ManifestField('clear', DefaultMarshaller(str), ''),
             ManifestField('auto-generate-show', DefaultMarshaller(bool), False),
             ManifestField('auto-generate-config', DefaultMarshaller(bool), False),
+            ManifestArray('source-yang-modules', DefaultMarshaller(str)),
         ])
     ])
 
