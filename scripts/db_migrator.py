@@ -591,17 +591,25 @@ class DBMigrator():
         Handle route table migration. Migrations handled:
         1. 'weight' attr in ROUTE object was introduced 202205 onwards.
             Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        2. 'protocol' attr in ROUTE introduced in 202305 onwards.
+            WarmRestartHelper reconcile logic requires to have "protocol" field in the old dumped ROUTE_TABLE.
+            Since an empty value is invalid and we can't know which protocol routes have originated from from
+            the old dump we assume it is "bgp". Later fpmsyncd will correct this during reconciliation.
         """
         route_table = self.appDB.get_table("ROUTE_TABLE")
         for route_prefix, route_attr in route_table.items():
+            if type(route_prefix) == tuple:
+                # IPv6 route_prefix is returned from db as tuple
+                route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+            else:
+                # IPv4 route_prefix is returned from db as str
+                route_key = "ROUTE_TABLE:{}".format(route_prefix)
+
             if 'weight' not in route_attr:
-                if type(route_prefix) == tuple:
-                    # IPv6 route_prefix is returned from db as tuple
-                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
-                else:
-                    # IPv4 route_prefix is returned from db as str
-                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
+            if 'protocol' not in route_attr:
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', 'bgp')
 
     def update_edgezone_aggregator_config(self):
         """
