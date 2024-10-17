@@ -2776,8 +2776,8 @@ class TestConfigLoopback(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Loopback0000 is invalid, name should have prefix 'Loopback' and suffix '<0-999>' and should \
-        not exceed 11 characters" in result.output
+        assert "Error: Loopback0000 is invalid, name should have prefix 'Loopback' and suffix '<0-999>' and " \
+            "should not exceed 15 characters" in result.output
 
     def test_del_nonexistent_loopback_adhoc_validation(self):
         config.ADHOC_VALIDATION = True

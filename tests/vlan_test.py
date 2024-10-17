@@ -581,7 +581,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: Invalid VLAN ID 123456789012 (1-4094)" in result.output
+        assert "Error: Invalid VLAN ID 123456789012 (2-4094)" in result.output
 
     def test_config_vlan_add_member_with_nonexist_vlanid(self):
         runner = CliRunner()

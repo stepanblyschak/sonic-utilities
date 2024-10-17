@@ -3,7 +3,7 @@ import utilities_common.cli as clicommon
 
 from jsonpatch import JsonPatchConflict
 from .validated_config_db_connector import ValidatedConfigDBConnector
-from swsscommon.swsscommon import validate_interface_name_length, iface_name_max_length
+from swsscommon.swsscommon import is_interface_name_valid, IFACE_NAME_MAX_LEN
 
 ADHOC_VALIDATION = True
 #
@@ -25,8 +25,8 @@ def add_vxlan(db, vxlan_name, src_ip):
     if ADHOC_VALIDATION:
         if not clicommon.is_ipaddress(src_ip):
             ctx.fail("{} invalid src ip address".format(src_ip))
-        if not validate_interface_name_length(vxlan_name):
-            ctx.fail("'vxlan_name' length should not exceed {} characters".format(iface_name_max_length()))
+        if not is_interface_name_valid(vxlan_name):
+            ctx.fail("'vxlan_name' length should not exceed {} characters".format(IFACE_NAME_MAX_LEN))
 
     vxlan_keys = db.cfgdb.get_keys('VXLAN_TUNNEL')
     if not vxlan_keys:
@@ -320,4 +320,3 @@ def del_vxlan_map_range(db, vxlan_name, vlan_start, vlan_end, vni_start):
            config_db.set_entry('VXLAN_TUNNEL_MAP', mapname, None)
        except JsonPatchConflict as e:
            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
-
