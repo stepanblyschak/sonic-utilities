@@ -1,6 +1,6 @@
 {
     "VERSIONS|DATABASE": {
-        "VERSION": "version_202411_01"
+        "VERSION": "version_4_0_3"
     },
     "FLEX_COUNTER_TABLE|ACL": {
         "FLEX_COUNTER_STATUS": "enable",
