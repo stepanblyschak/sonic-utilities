@@ -466,16 +466,36 @@ function setup_reboot_variables()
     fi
 }
 
-function check_docker_exec()
-{
-    containers="radv bgp lldp swss database teamd syncd"
-    for container in $containers; do
-        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
-        if [[ x"${STATE}" == x"timed out" ]]; then
-            error "Docker exec on $container timedout"
-            exit "${EXIT_FAILURE}"
-        fi
-    done
+function check_docker_exec() {
+     containers="radv bgp lldp swss database teamd syncd"
+     for container in $containers; do
+         local timeout_duration=1
+         local max_timeout=5
+         local success=false
+         while [[ $timeout_duration -le $max_timeout ]]; do
+             STATE=$(timeout ${timeout_duration}s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+             if [[ x"${STATE}" == x"success" ]]; then
+                if [[ $timeout_duration -ge 2 ]]; then
+                    error "Docker exec on $container succeeded only after $timeout_duration tries"
+                    exit "${EXIT_FAILURE}"
+                fi
+                success=true
+                break
+	      elif [[ x"${STATE}" == x"timed out" ]]; then
+                # docker exec timed out
+                 error "docker exec timed out for $container for $timeout_duration"
+             else
+                # Timeout is the only cause of failure, if docker is down then exit out of loop
+                success=true
+                break
+             fi
+             timeout_duration=$((timeout_duration + 1))
+         done
+         if [[ $success == false ]]; then
+            error "Docker exec on $container timed out after ${max_timeout}s"
+             exit "${EXIT_FAILURE}"
+         fi
+     done
 }
 
 function check_db_integrity()
