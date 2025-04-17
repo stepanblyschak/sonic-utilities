@@ -1285,14 +1285,14 @@ class DBMigrator():
         """
         log.log_info('Handling version_202405_02')
         self.migrate_ipinip_tunnel()
-        self.set_version('version_202411_01')
-        return 'version_202411_01'
+        self.set_version('version_202411_02')
+        return 'version_202411_02'
 
-    def version_202411_01(self):
+    def version_202411_02(self):
         """
-        Version 202411_01.
+        Version 202411_02.
         """
-        log.log_info('Handling version_202411_01')
+        log.log_info('Handling version_202411_02')
         self.set_version('version_202505_01')
         return 'version_202505_01'
 
@@ -1302,7 +1302,7 @@ class DBMigrator():
         master branch until 202505 branch is created.
         """
         log.log_info('Handling version_202505_01')
-        self.migrate_flex_counter_delay_status_removal()
+        #self.migrate_flex_counter_delay_status_removal()
         return None
 
     def get_version(self):
