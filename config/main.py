@@ -129,6 +129,11 @@ QUEUE_RANGE = click.IntRange(min=0, max=255)
 GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
 ADHOC_VALIDATION = True
 
+if not os.environ.get("UTILITIES_UNIT_TESTING"):
+    SYSTEMD_ENABLE_DEBUG_LOGS = True
+else:
+    SYSTEMD_ENABLE_DEBUG_LOGS = False
+
 if os.environ.get("UTILITIES_UNIT_TESTING", "0") in ("1", "2"):
     temp_system_reload_lockfile = tempfile.NamedTemporaryFile()
     SYSTEM_RELOAD_LOCK = temp_system_reload_lockfile.name
@@ -969,6 +974,10 @@ def _get_disabled_services_list(config_db):
 
 
 def _stop_services():
+    if SYSTEMD_ENABLE_DEBUG_LOGS:
+        log.log_notice("Enabling systemd debug logs")
+        clicommon.run_command(["systemd-analyze", "log-level", "debug"], display_cmd=True)
+
     try:
         subprocess.check_call(['sudo', 'monit', 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Disabling container and routeCheck monitoring ...")
@@ -979,6 +988,17 @@ def _stop_services():
 
     click.echo("Stopping SONiC target ...")
     clicommon.run_command(['sudo', 'systemctl', 'stop', 'sonic.target', '--job-mode', 'replace-irreversibly'])
+
+    if SYSTEMD_ENABLE_DEBUG_LOGS:
+        for iteration in range(5):
+            out, _ = clicommon.run_command(['sudo', 'systemctl', 'is-active', 'sonic.target'], display_cmd=True, return_cmd=True)
+            out = out.strip()
+            if out != "inactive":
+                log.log_error("--- REPRODUCE --- Failed to stop sonic.target, probably it started again, state: {}".format(out))
+                sys.exit(1)
+            else:
+                log.log_notice("--- DEBUG --- sonic.target is inactive, waiting for 1 second, iteration: {}".format(iteration))
+                time.sleep(1)
 
 
 def _get_sonic_services():
@@ -1042,6 +1062,10 @@ def _restart_services():
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command(['sudo', 'monit', 'reload'])
+
+    if SYSTEMD_ENABLE_DEBUG_LOGS:
+        log.log_notice("Disabling systemd debug logs")
+        clicommon.run_command(["systemd-analyze", "log-level", "info"], display_cmd=True)
 
 def _per_namespace_swss_ready(service_name):
     out, _ = clicommon.run_command(['systemctl', 'show', str(service_name), '--property', 'ActiveState', '--value'], return_cmd=True)
