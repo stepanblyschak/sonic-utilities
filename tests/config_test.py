@@ -217,7 +217,6 @@ Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-
 
 reload_config_with_disabled_service_output="""\
 Acquired lock on {0}
-Running command: sudo systemctl stop featured.timer
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -j /tmp/config.json --write-to-db
 Restarting SONiC target ...
