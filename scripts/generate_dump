@@ -1419,6 +1419,8 @@ collect_mellanox() {
     fi
 
     save_cmd "show interfaces autoneg status" "autoneg.status"
+
+    save_cmd "cat /run/hw-management/eeprom/vpd_data" "vpd_data"
 }
 
 ###############################################################################
